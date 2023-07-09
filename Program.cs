@@ -6,10 +6,10 @@ using System.Threading.Tasks;
 using System.Net;
 using HtmlAgilityPack;
 using System.IO;
+using ShellProgressBar;
 
 namespace spider
 {
-
     class Program
     {
 
@@ -18,11 +18,11 @@ namespace spider
             bool carry = true;
             while (carry)
             {
-                Console.Write("Please enter your link(or enter E to exit): ");
+                Console.Write("Please enter your link(or enter 'E/e' to exit): ");
                 string url = Console.ReadLine();
-                /*string url = "https://kemono.party/fanbox/user/70050825/post/6167696/";*/
+                /*string url = "https://kemono.party/fanbox/user/70050825/post/4256029";*/
 
-                if(url =="E") { return; }
+                if (url.ToUpper() =="E") { return; }
                 else
                 {
                     DateTime startTime = DateTime.Now;
@@ -69,6 +69,7 @@ namespace spider
             }
             string createFilePath = $@"{Directory.GetCurrentDirectory()}/Download/【{authorText}】{topicText}";
             Directory.CreateDirectory(createFilePath);
+            /*Console.WriteLine(createFilePath);*/
 
             foreach (HtmlNode divNode in divNodes)
             {
@@ -84,9 +85,24 @@ namespace spider
                         try
                         {
                             string fileName = Path.GetFileName(imageUrl).Split(new char[] { '.' })[^1];
-                            client.DownloadFile(imageUrl, $"{createFilePath}/Art-{index}" + '.' + fileName);
+                            string filePath = $"{createFilePath}/Art-{index}" + '.' + fileName;
+
+                            //进度条显示
+                            
+
+                            client.DownloadFile(imageUrl, filePath);
+
+                            FileInfo fileInfo = new FileInfo(filePath);
+                            double fileSizeInMB = 1.0;
+                            if (fileInfo.Exists)
+                            {
+                                long fileSizeInB = fileInfo.Length;
+                                fileSizeInMB = fileSizeInB / 1024.0 / 1024.0;
+                            }
+
                             Console.ForegroundColor = ConsoleColor.Green;
                             Console.WriteLine($"Art-{index++}:Download already!");
+                            Console.WriteLine($"ImageSize: {Math.Round(fileSizeInMB, 2)}MB");
                         }
                         catch (Exception ex)
                         {
