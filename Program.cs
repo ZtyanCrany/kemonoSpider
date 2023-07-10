@@ -39,7 +39,7 @@ namespace spider
                     Console.WriteLine($"All Downloaded.\nTotal time: {Math.Round((endTime - startTime).TotalSeconds, 2)}s.");
                     Console.WriteLine($"Download number: {index}, Total size: {Math.Round((totalFileSize / (1024.0 * 1024.0)), 2)}MB.\n");
                     Console.ResetColor();
-                    index = 0;
+                    index = 0; totalFileSize = 0;
                 }
             }
         }
@@ -114,7 +114,7 @@ namespace spider
             {
                 string fileName = Path.GetFileName(imageUrl).Split(new char[] { '.' })[^1];
                 string filePath = $"{createFilePath}/Art-{++index}" + '.' + fileName;
-                Thread.Sleep(10);
+                Thread.Sleep(30);
 
                 using (var response = await client.GetAsync(imageUrl, HttpCompletionOption.ResponseHeadersRead))
                 {
