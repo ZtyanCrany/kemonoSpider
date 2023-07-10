@@ -7,9 +7,6 @@
 - C# 8.0
 - .NET FrameWork 4.8
 
-## TODO
-错误处理、窗口化、打包。
-
 ## 实现效果
 - **控制台显示**<br><br>
 ![}%OC3AYT)2FZH5FHWF47P{2](https://github.com/ZtyanCrany/kemonoSpider/assets/95357121/17d4a885-6796-4605-af5a-73f754a0e280)
