@@ -1,11 +1,13 @@
 # kemonoSpider
 获取kemono图片的C#爬虫脚本<br>
-使用方法为输入当前条目下的链接，如"https://kemono.party/fanbox/user/{user_id}/post/{post_id}/" 即可原画质下载全部图片（支持gif，但不支持视频）。
 
 ## 开发环境
 - Visual Studio 2022
 - C# 8.0
 - .NET FrameWork 4.8
+
+## 使用方法
+输入当前条目下的链接，如"https://kemono.party/fanbox/user/{user_id}/post/{post_id}/" 即可原画质下载全部图片（支持gif，但不支持视频）。
 
 ## 实现效果
 - **控制台显示**<br><br>
