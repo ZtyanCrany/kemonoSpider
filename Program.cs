@@ -2,7 +2,9 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -15,6 +17,7 @@ namespace spider
     {
         private static HttpClient client = new HttpClient();
         private static long totalFileSize = 0;
+        static int artNum = 0;
         static async Task Main(string[] args)
         {
             bool carry = true;
@@ -37,9 +40,9 @@ namespace spider
                     DateTime endTime = DateTime.Now;
 
                     Console.WriteLine($"All Downloaded.\nTotal time: {Math.Round((endTime - startTime).TotalSeconds, 2)}s.");
-                    Console.WriteLine($"Download number: {index}, Total size: {Math.Round((totalFileSize / (1024.0 * 1024.0)), 2)}MB.\n");
+                    Console.WriteLine($"Download number: {fileNum}, Total size: {Math.Round((totalFileSize / (1024.0 * 1024.0)), 2)}MB.\n");
                     Console.ResetColor();
-                    index = 0; totalFileSize = 0;
+                    index = 0; totalFileSize = 0; fileNum = 0;
                 }
             }
         }
@@ -70,20 +73,46 @@ namespace spider
             Console.WriteLine($"Topic: {topicText}");
             Console.ResetColor();
 
-            if (topicText.Contains("/"))
+            if (topicText.Contains("/") || topicText.Contains("|"))
             {
                 topicText = topicText.Replace("/", "_");
+                topicText = topicText.Replace("|", "-");
             }
             string createFilePath = $@"{Directory.GetCurrentDirectory()}/Download/【{authorText}】{topicText}";
             Directory.CreateDirectory(createFilePath);
 
             var progressBarOptions = new ProgressBarOptions
             {
-                ProgressCharacter = '▇',
-                ProgressBarOnBottom = true
+                ProgressCharacter = '▅',
+                BackgroundColor = ConsoleColor.DarkGray,
+                ProgressBarOnBottom = true,
+                DisableBottomPercentage = false,
+                CollapseWhenFinished = false,
+            };
+            var childProgressBarOptions = new ProgressBarOptions
+            {
+                ProgressCharacter = '▂',
+                BackgroundColor = ConsoleColor.DarkGray,
+                ProgressBarOnBottom = false,
+                DisableBottomPercentage = false,
+
             };
 
-            using (var progressBar = new ProgressBar(divNodes.Count, "Downloading...", progressBarOptions))
+            int downloadNum = 0;
+            
+            foreach (HtmlNode divNode in divNodes)
+            {
+                HtmlNodeCollection hrefNodes = divNode.SelectNodes(".//a[@href]");
+                if (hrefNodes != null)
+                {
+                    foreach (HtmlNode hrefNode in hrefNodes)
+                    {
+                        downloadNum++;
+                    }
+                }
+            }
+
+            using (var progressBar = new ProgressBar(downloadNum, "Downloading...", progressBarOptions))
             {
                 var tasks = new List<Task>();
 
@@ -96,9 +125,10 @@ namespace spider
                         {
                             string imageUrl = hrefNode.GetAttributeValue("href", "");
                             Console.ResetColor();
-                            Console.WriteLine(imageUrl);
-
-                            tasks.Add(DownloadGallery(imageUrl, createFilePath, progressBar));
+                            using (var childProgressBar = progressBar.Spawn(1,$"Art-{++artNum} is coming~",childProgressBarOptions))
+                            {
+                                tasks.Add(DownloadGallery(imageUrl, createFilePath, progressBar, childProgressBar, artNum));
+                            }
                         }
                     }
                 }
@@ -108,13 +138,20 @@ namespace spider
         }
 
         static int index = 0;
-        static async Task DownloadGallery(string imageUrl, string createFilePath, ProgressBar progressBar)
+        static int fileNum = 0;
+        static async Task DownloadGallery(string imageUrl, string createFilePath, ProgressBar progressBar, ChildProgressBar childProgressBar, int Artnum)
         {
             try
             {
+                //设置保存路径与文件名
                 string fileName = Path.GetFileName(imageUrl).Split(new char[] { '.' })[^1];
                 string filePath = $"{createFilePath}/Art-{++index}" + '.' + fileName;
                 Thread.Sleep(30);
+
+                //获取图片大小前置
+                HttpWebRequest hwrequest = (HttpWebRequest)WebRequest.Create(imageUrl);
+                hwrequest.Method = "HEAD";
+                HttpWebResponse hwresponse = (HttpWebResponse)hwrequest.GetResponse();
 
                 using (var response = await client.GetAsync(imageUrl, HttpCompletionOption.ResponseHeadersRead))
                 {
@@ -122,15 +159,23 @@ namespace spider
 
                     using (var stream = await response.Content.ReadAsStreamAsync())
                     {
+                        
                         using (var fileStream = File.Create(filePath))
                         {
-                            await stream.CopyToAsync(fileStream);
+                            await stream.CopyToAsync(fileStream);   
                         }
                     }
                 }
 
+                //状态更新
+                if (hwresponse.StatusCode == HttpStatusCode.OK)
+                {
+                    childProgressBar.Message = $"Art-{Artnum} is ready! Image size: {Math.Round((hwresponse.ContentLength / (1024.0 * 1024.0)), 2)}MB.";
+                }          
+
                 //Calculate downloads
                 FileInfo fileInfo = new FileInfo(filePath);
+                fileNum = Directory.GetFiles(fileInfo.DirectoryName).Length;
                 if (fileInfo.Exists)
                 {
                     long fileSizeInB = fileInfo.Length;
@@ -138,8 +183,8 @@ namespace spider
                 }
 
                 Console.ForegroundColor = ConsoleColor.Green;
-                Console.WriteLine($"Downloading... Art-{index}");
                 progressBar.Tick();
+                childProgressBar.Tick();
             }
             catch (Exception ex)
             {
