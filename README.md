@@ -11,6 +11,10 @@
 
 ## 实现效果
 - **控制台显示**<br><br>
+新效果：<br>
+![LN4I_RYL762B`1G I%N58EL](https://github.com/ZtyanCrany/kemonoSpider/assets/95357121/ace1900f-f31c-4319-b4d9-3190fa6eedca)
+![SI)(3AH)HUZN7V2Q2S~SQ1E](https://github.com/ZtyanCrany/kemonoSpider/assets/95357121/dc5db4ac-e445-4d42-af66-58e4e789a2d7)
+<br>旧效果：<br>
 ![}%OC3AYT)2FZH5FHWF47P{2](https://github.com/ZtyanCrany/kemonoSpider/assets/95357121/17d4a885-6796-4605-af5a-73f754a0e280)
 ![image](https://github.com/ZtyanCrany/kemonoSpider/assets/95357121/67b877f4-6d94-4b73-b6f4-c099a4eb671e)
 
