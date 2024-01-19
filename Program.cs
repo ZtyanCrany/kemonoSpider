@@ -1,11 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
-using System.Runtime.CompilerServices;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using HtmlAgilityPack;
@@ -16,180 +13,247 @@ namespace spider
     class Program
     {
         private static HttpClient client = new HttpClient();
+        private static string downloadPath = string.Empty;
         private static long totalFileSize = 0;
-        static int artNum = 0;
         static async Task Main(string[] args)
         {
-            bool carry = true;
-            while (carry)
+            while (true)
             {
-                Console.Write("Please enter your link (or enter 'E/e' to exit): ");
+                LoadDownloadPath();
+                Console.Write("Please Enter Your Link or: \n" +
+                    $"-> enter 'S/s' to change downloadpath.\n (Current: {downloadPath})\n" +
+                    "-> enter 'E/e' to exit.\n");
                 string url = Console.ReadLine();
-
-                if (url.ToUpper() == "E") 
+                if (url.ToUpper() == "E")
                 {
                     Console.ForegroundColor = ConsoleColor.Yellow;
-                    Console.WriteLine("*******\nThanks for using and have a nice day :D\nWriter: ZtyanCrany\n*******\n");
+                    Console.WriteLine("*******\nThanks for using and have a nice day :D\n" +
+                                      "Author: ZtyanCrany\n*******\n");
+                    Console.ResetColor();
                     Thread.Sleep(2500);
                     return;
+                }
+                if (url.ToUpper() == "S")
+                {
+                    Console.ForegroundColor = ConsoleColor.Yellow;
+                    Console.WriteLine("*******\nPlease enter your download path: ");
+                    string path = Console.ReadLine();
+                    if (Directory.Exists(path))
+                    {
+                        downloadPath = path;
+                        SaveDownloadPath();
+                        Console.WriteLine($"Download path change to ({downloadPath}).\n*******");
+                    }
+                    else
+                    {
+                        Console.WriteLine("Path does not exist.\n*******");
+                    }
+                    Console.ResetColor();
+                    continue;
                 }
                 else
                 {
                     DateTime startTime = DateTime.Now;
                     await DownloadSettings(url);
                     DateTime endTime = DateTime.Now;
+                    Console.ForegroundColor = ConsoleColor.Cyan;
+                    Console.WriteLine($"\nAuthor: {authorText}\n" +
+                                      $"Topic: {topicText}\n");
 
-                    Console.WriteLine($"All Downloaded.\nTotal time: {Math.Round((endTime - startTime).TotalSeconds, 2)}s.");
-                    Console.WriteLine($"Download number: {fileNum}, Total size: {Math.Round((totalFileSize / (1024.0 * 1024.0)), 2)}MB.\n");
                     Console.ResetColor();
-                    index = 0; totalFileSize = 0; fileNum = 0;
+                    Console.WriteLine($"Task Completed, {errorIndex} download failed.\n" +
+                                      $"Total time: {Math.Round((endTime - startTime).TotalSeconds, 2)}s.\n" +
+                                      $"Download number: {fileNum}, " +
+                                      $"Total size: {Math.Round(totalFileSize / (1024.0 * 1024.0), 2)}MB.\n" +
+                                      $"Download path: {downloadPath}\n");
+
+                    totalFileSize = 0; fileNum = 0; errorIndex = 0;
                 }
             }
         }
 
+        static void LoadDownloadPath()
+        {
+            string pathfile = "downloadpath.txt";
+            if (File.Exists(pathfile))
+            {
+                downloadPath = File.ReadAllText(pathfile);
+            }
+            else
+            {
+                downloadPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
+            }
+        }
+        static void SaveDownloadPath()
+        {
+            string pathfile = "downloadpath.txt";
+            File.WriteAllText(pathfile, downloadPath);
+        }
+
+        static string authorText = string.Empty;
+        static string topicText = string.Empty;
         static async Task DownloadSettings(string url)
         {
-            string htmlContent;
-            string pagePath = "//*[@id=\"page\"]/";
-
-            client.DefaultRequestHeaders.Accept.Clear();
-            client.DefaultRequestHeaders.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("text/html"));
-
-            htmlContent = await client.GetStringAsync(url);
-            HtmlDocument document = new HtmlDocument();
-            document.LoadHtml(htmlContent);
-
-            string galleryPath = pagePath + "div/div";
-            string authorPath = pagePath + "header/div[1]/div[2]/a";
-            string topicPath = pagePath + "header/div[2]/h1";
-
-            HtmlNodeCollection divNodes = document.DocumentNode.SelectNodes(galleryPath);
-            HtmlNode authorNode = document.DocumentNode.SelectSingleNode(authorPath);
-            HtmlNode topicNode = document.DocumentNode.SelectSingleNode(topicPath);
-            string authorText = authorNode.InnerText.Trim();
-            string topicText = topicNode.InnerText.Trim();
-            Console.ForegroundColor=ConsoleColor.Cyan;
-            Console.WriteLine($"Author: {authorText}");
-            Console.WriteLine($"Topic: {topicText}");
-            Console.ResetColor();
-
-            if (topicText.Contains("/") || topicText.Contains("|"))
+            try
             {
-                topicText = topicText.Replace("/", "_");
-                topicText = topicText.Replace("|", "-");
-            }
-            string createFilePath = $@"{Directory.GetCurrentDirectory()}/Download/【{authorText}】{topicText}";
-            Directory.CreateDirectory(createFilePath);
+                string pagePath = "//*[@id=\"page\"]/";
 
-            var progressBarOptions = new ProgressBarOptions
-            {
-                ProgressCharacter = '▅',
-                BackgroundColor = ConsoleColor.DarkGray,
-                ProgressBarOnBottom = true,
-                DisableBottomPercentage = false,
-                CollapseWhenFinished = false,
-            };
-            var childProgressBarOptions = new ProgressBarOptions
-            {
-                ProgressCharacter = '▂',
-                BackgroundColor = ConsoleColor.DarkGray,
-                ProgressBarOnBottom = false,
-                DisableBottomPercentage = false,
+                ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12 | SecurityProtocolType.Tls11;
+                HtmlWeb web = new HtmlWeb();
+                HtmlDocument document = await web.LoadFromWebAsync(url);
 
-            };
+                string galleryPath = $"{pagePath}div/div";
+                string authorPath = $"{pagePath}header/div[1]/div[2]/a";
+                string topicPath = $"{pagePath}header/div[2]/h1";
 
-            int downloadNum = 0;
-            
-            foreach (HtmlNode divNode in divNodes)
-            {
-                HtmlNodeCollection hrefNodes = divNode.SelectNodes(".//a[@href]");
-                if (hrefNodes != null)
+                HtmlNodeCollection divNodes = document.DocumentNode.SelectNodes(galleryPath);
+                HtmlNode authorNode = document.DocumentNode.SelectSingleNode(authorPath);
+                HtmlNode topicNode = document.DocumentNode.SelectSingleNode(topicPath);
+
+                authorText = authorNode?.InnerText.Trim() ?? "Unknown Author";
+                topicText = topicNode?.InnerText.Trim() ?? "Unknown Topic";
+
+                if (topicText.Contains("/") || topicText.Contains("|"))
                 {
-                    foreach (HtmlNode hrefNode in hrefNodes)
-                    {
-                        downloadNum++;
-                    }
+                    topicText = topicText.Replace("/", "_");
+                    topicText = topicText.Replace("|", "-");
                 }
-            }
+                string createFilePath = Path.Combine(downloadPath, $"【{authorText}】{topicText}");
+                Directory.CreateDirectory(createFilePath);
 
+                await DownloadGallerys(divNodes, createFilePath);
+            }
+            catch (Exception ex)
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine("Web Error! " + ex.Message);
+            }
+        }
+        
+        static ProgressBarOptions progressBarOptions = new ProgressBarOptions
+        {
+            ProgressCharacter = '▅',
+            BackgroundColor = ConsoleColor.DarkGray,
+            ProgressBarOnBottom = true,
+            DisableBottomPercentage = false,
+            CollapseWhenFinished = false,
+            
+        };
+        static ProgressBarOptions childProgressBarOptions = new ProgressBarOptions
+        {
+            ProgressCharacter = '▂',
+            BackgroundColor = ConsoleColor.DarkGray,
+            ProgressBarOnBottom = false,
+            DisableBottomPercentage = false,
+        };
+        private static SemaphoreSlim semaphoreSlim = new SemaphoreSlim(6);
+        static async Task DownloadGallerys(HtmlNodeCollection divNodes, string createFilePath)
+        {
+            int downloadNum = divNodes.Sum(divNode => (divNode.SelectNodes("*/figure/a")?.Count) ?? 0);
             using (var progressBar = new ProgressBar(downloadNum, "Downloading...", progressBarOptions))
             {
-                var tasks = new List<Task>();
-
-                foreach (HtmlNode divNode in divNodes)
-                {
-                    HtmlNodeCollection hrefNodes = divNode.SelectNodes(".//a[@href]");
-                    if (hrefNodes != null)
+                var tasks = divNodes.SelectMany(divNode => divNode.SelectNodes("*/figure/a") ?? Enumerable.Empty<HtmlNode>())
+                    .Select(async (imgNode, index) =>
                     {
-                        foreach (HtmlNode hrefNode in hrefNodes)
+                        await semaphoreSlim.WaitAsync();
+                        try
                         {
-                            string imageUrl = hrefNode.GetAttributeValue("href", "");
+                            string imageUrl = imgNode.GetAttributeValue("href", "");
                             Console.ResetColor();
-                            using (var childProgressBar = progressBar.Spawn(1,$"Art-{++artNum} is coming~",childProgressBarOptions))
+                            using (var childProgressBar = progressBar.Spawn(1, $"Art-{index + 1} is coming~", childProgressBarOptions))
                             {
-                                tasks.Add(DownloadGallery(imageUrl, createFilePath, progressBar, childProgressBar, artNum));
+                                await DownloadGallery(imageUrl, createFilePath, progressBar, childProgressBar, index + 1);
                             }
                         }
-                    }
-                }
+                        finally
+                        {
+                            semaphoreSlim.Release();
+                        }
+                    });
+
                 await Task.WhenAll(tasks);
                 progressBar.Message = "Download complete!";
             }
         }
 
-        static int index = 0;
+
         static int fileNum = 0;
+        static int errorIndex = 0;
         static async Task DownloadGallery(string imageUrl, string createFilePath, ProgressBar progressBar, ChildProgressBar childProgressBar, int Artnum)
         {
-            try
+            int tryCount = 16;
+            while (tryCount > 0)
             {
-                //设置保存路径与文件名
-                string fileName = Path.GetFileName(imageUrl).Split(new char[] { '.' })[^1];
-                string filePath = $"{createFilePath}/Art-{++index}" + '.' + fileName;
-                Thread.Sleep(30);
-
-                //获取图片大小前置
-                HttpWebRequest hwrequest = (HttpWebRequest)WebRequest.Create(imageUrl);
-                hwrequest.Method = "HEAD";
-                HttpWebResponse hwresponse = (HttpWebResponse)hwrequest.GetResponse();
-
-                using (var response = await client.GetAsync(imageUrl, HttpCompletionOption.ResponseHeadersRead))
+                try
                 {
-                    response.EnsureSuccessStatusCode();
+                    string fileName = Path.GetFileName(imageUrl).Split('.').LastOrDefault();
+                    string filePath = Path.Combine(createFilePath, $"Art-{Artnum}.{fileName}");
+                    Thread.Sleep(200);
 
-                    using (var stream = await response.Content.ReadAsStreamAsync())
+                    using (var hwresponse = await GetHeadResponse(imageUrl))
                     {
-                        
-                        using (var fileStream = File.Create(filePath))
+                        using (var response = await client.GetAsync(imageUrl, HttpCompletionOption.ResponseHeadersRead))
                         {
-                            await stream.CopyToAsync(fileStream);   
+                            response.EnsureSuccessStatusCode();
+                            using (var stream = await response.Content.ReadAsStreamAsync())
+                            {
+                                using (var fileStream = File.Create(filePath))
+                                {
+                                    await stream.CopyToAsync(fileStream);
+                                }
+                            }
                         }
+
+                        if (hwresponse.StatusCode == HttpStatusCode.OK)
+                        {
+                            double imageSizeInMB = 0;
+                            if (hwresponse.Content.Headers.ContentLength.HasValue)
+                            {
+                                imageSizeInMB = Math.Round(hwresponse.Content.Headers.ContentLength.Value / (1024.0 * 1024.0), 2);
+                            }
+                            childProgressBar.Message = $"Art-{Artnum} is ready! Image size: {imageSizeInMB}MB.";
+                        }
+
+                        FileInfo fileInfo = new FileInfo(filePath);
+                        if (fileInfo.DirectoryName != null)
+                        {
+                            fileNum = Directory.GetFiles(fileInfo.DirectoryName).Length;
+                            if (fileInfo.Exists)
+                            {
+                                Interlocked.Add(ref totalFileSize, fileInfo.Length);
+                            }
+                        }
+                        Console.ForegroundColor = ConsoleColor.Green;
+                        progressBar.Tick();
+                        childProgressBar.Tick();
+                    }
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    tryCount--;
+                    if (tryCount > 0)
+                    {
+                        Console.ForegroundColor = ConsoleColor.Yellow;
+                        childProgressBar.Message = $"Art-{Artnum} Download Error! Retrying...";
+                    }
+                    if (tryCount == 0)
+                    {
+                        errorIndex++;
+                        Console.ForegroundColor = ConsoleColor.Red;
+                        childProgressBar.Message = $"Art-{Artnum} Download Error! " + ex.Message;
                     }
                 }
-
-                //状态更新
-                if (hwresponse.StatusCode == HttpStatusCode.OK)
-                {
-                    childProgressBar.Message = $"Art-{Artnum} is ready! Image size: {Math.Round((hwresponse.ContentLength / (1024.0 * 1024.0)), 2)}MB.";
-                }          
-
-                //Calculate downloads
-                FileInfo fileInfo = new FileInfo(filePath);
-                fileNum = Directory.GetFiles(fileInfo.DirectoryName).Length;
-                if (fileInfo.Exists)
-                {
-                    long fileSizeInB = fileInfo.Length;
-                    Interlocked.Add(ref totalFileSize, fileSizeInB);
-                }
-
-                Console.ForegroundColor = ConsoleColor.Green;
-                progressBar.Tick();
-                childProgressBar.Tick();
             }
-            catch (Exception ex)
+
+        }
+        static async Task<HttpResponseMessage> GetHeadResponse(string url)
+        {
+            using (HttpClient client = new HttpClient())
             {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("Download Error! " + ex.Message);
+                var request = new HttpRequestMessage(HttpMethod.Head, url);
+                var response = await client.SendAsync(request);
+                return response;
             }
         }
     }
