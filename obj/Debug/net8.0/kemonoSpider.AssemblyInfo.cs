@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("kemonoSpider")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+4365e358af41f2fd541f3e21cc378b60611a142c")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+f2213f97430b45cc3993ca2ca39e73ba33e2ea6c")]
 [assembly: System.Reflection.AssemblyProductAttribute("kemonoSpider")]
 [assembly: System.Reflection.AssemblyTitleAttribute("kemonoSpider")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using HtmlAgilityPack;
@@ -112,12 +113,9 @@ namespace spider
 
                 authorText = authorNode?.InnerText.Trim() ?? "Unknown Author";
                 topicText = topicNode?.InnerText.Trim() ?? "Unknown Topic";
+                authorText = Regex.Replace(authorText, "[<>:\"/\\|?*]", "");
+                topicText = Regex.Replace(topicText, "[<>:\"/\\|?*]", "");
 
-                if (topicText.Contains("/") || topicText.Contains("|"))
-                {
-                    topicText = topicText.Replace("/", "_");
-                    topicText = topicText.Replace("|", "-");
-                }
                 string createFilePath = Path.Combine(downloadPath, $"【{authorText}】{topicText}");
                 Directory.CreateDirectory(createFilePath);
 
