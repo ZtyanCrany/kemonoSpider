@@ -26,4 +26,4 @@
 ![alt text](./readmeImage/231be0decf47dbce1155ff7ede103de6.png)
 ![alt text](./readmeImage/88a1951e85bf897764d46088841ba6b5.png)
 ## 补充
-null
+建议使用欧美IP进行下载。
